@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  devices   Device[]
+}
+
+model Device {
+  id                String                @id @default(cuid())
+  secretHash        String
+  platform          Platform              @default(EXTENSION)
+  userId            String?
+  timezone          String                @default("Europe/Istanbul")
+  createdAt         DateTime              @default(now())
+  lastSeenAt        DateTime              @default(now())
+  user              User?                 @relation(fields: [userId], references: [id])
+  events            Event[]
+  generatedMessages GeneratedMessage[]
+  goals             Goal[]
+  schedule          NotificationSchedule?
+  pushSub           PushSubscription?
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  deviceId  String   @unique
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  category  Category
+  locale    String   @default("tr")
+  text      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([category, isActive])
+}
+
+model Goal {
+  id         String    @id @default(cuid())
+  deviceId   String
+  title      String
+  cadence    Cadence   @default(DAILY)
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime?
+  checkins   Checkin[]
+  device     Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, archivedAt])
+}
+
+model Checkin {
+  id     String   @id @default(cuid())
+  goalId String
+  date   DateTime @db.Date
+  goal   Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@unique([goalId, date])
+  @@index([date])
+}
+
+model NotificationSchedule {
+  id        String  @id @default(cuid())
+  deviceId  String  @unique
+  morningAt String  @default("09:00")
+  eveningAt String  @default("21:00")
+  enabled   Boolean @default(true)
+  device    Device  @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  deviceId  String
+  type      String
+  meta      Json?
+  createdAt DateTime @default(now())
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, type, createdAt])
+}
+
+model GeneratedMessage {
+  id        String   @id @default(cuid())
+  deviceId  String
+  forDate   DateTime @db.Date
+  slot      String
+  text      String
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, forDate, slot])
+  @@index([deviceId, forDate])
+}
+
+enum Platform {
+  EXTENSION
+  PWA
+}
+
+enum Category {
+  MORNING
+  GOAL_NUDGE
+  STREAK
+  EVENING
+  CELEBRATE
+}
+
+enum Cadence {
+  DAILY
+  WEEKLY
+  ONCE
+}
