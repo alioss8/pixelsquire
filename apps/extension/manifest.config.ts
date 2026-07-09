@@ -1,0 +1,22 @@
+import { defineManifest } from '@crxjs/vite-plugin'
+
+export default defineManifest({
+  manifest_version: 3,
+  name: 'PixelSquire',
+  version: '0.1.0',
+  description: 'Your pixel squire, nudging you to quest daily',
+  permissions: ['storage', 'alarms'],
+  host_permissions: [],
+  background: {
+    service_worker: 'src/background/index.ts',
+    type: 'module'
+  },
+  content_scripts: [{
+    matches: ['<all_urls>'],
+    js: ['src/content/index.ts'],
+    run_at: 'document_idle'
+  }],
+  action: {
+    default_popup: 'src/popup/index.html'
+  }
+})
