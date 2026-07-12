@@ -17,6 +17,7 @@
     }
   },
   "type": "module",
+  "packageManager": "pnpm@11.10.0",
   "devDependencies": {
     "turbo": "^2.10.4"
   }
