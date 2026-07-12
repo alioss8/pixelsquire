@@ -12,9 +12,7 @@
 
   "type": "module",
   "packageManager": "pnpm@11.10.0",
-  "pnpm": {
-  "onlyBuiltDependencies": ["@prisma/engines", "prisma", "@prisma/client", "esbuild"]
-  },
+  
   "devDependencies": {
     "turbo": "^2.10.4"
   }
