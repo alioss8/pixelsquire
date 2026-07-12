@@ -2,6 +2,8 @@ import { calcStreak } from "./streak";
 import { prisma } from './db'
 import { formatInTimeZone  } from 'date-fns-tz'
 
+type MessageCategory = 'MORNING' | 'GOAL_NUDGE' | 'STREAK' | 'EVENING' | 'CELEBRATE'
+
 function pickCategory(context: string, hour: number, streak: number): string {
     if (context === "celebrate") {
         return 'CELEBRATE';
@@ -27,7 +29,7 @@ export async function pickNextMessage(device:{id:string;timezone:string},context
     const category = pickCategory(context,hour,streak)
 
     const messages = await prisma.message.findMany({
-    where: { category: category as any, isActive: true },
+    where: { category: category as MessageCategory, isActive: true },
     })
 
     const chosen = messages[Math.floor(Math.random() * messages.length)]
