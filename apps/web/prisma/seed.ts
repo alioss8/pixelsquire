@@ -4,13 +4,14 @@
 
  const adapter = new PrismaPg({connectionString:process.env.DATABASE_URL})
  const prisma = new PrismaClient({adapter})
+ type MessageCategory = 'MORNING' | 'GOAL_NUDGE' | 'STREAK' | 'EVENING' | 'CELEBRATE'
 
  async function main (){
     await prisma.message.deleteMany()
     const rows = []
     for (const [category , texts] of Object.entries(messages)){
         for (const text of texts as string[]){
-            rows.push({category:category as any , text, locale: 'en'})
+            rows.push({category:category as MessageCategory , text, locale: 'en'})
         }
     }
     await prisma.message.createMany({data:rows})

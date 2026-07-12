@@ -1,5 +1,6 @@
 import { authenticate } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { CreateGoalInput } from '@pixelsquire/shared'
 
 export async function POST(req:Request) {
     const device = await authenticate(req.headers.get('authorization'))
@@ -7,15 +8,22 @@ export async function POST(req:Request) {
         return Response.json({error:'unauthorized'},{status:401})
     }
 
-    let body:any ={} 
+    let raw: unknown
     try {
-       body = await req.json() 
+    raw = await req.json()
     } catch {
-       body ={}  
+    raw = {}
     }
 
-    const title =body.title
-    const cadence =body.cadence ?? 'DAILY'
+    const parsed = CreateGoalInput.safeParse(raw)
+    if (!parsed.success) {
+    return Response.json(
+        { error: 'invalid input', details: parsed.error.flatten() },
+        { status: 400 }
+    )
+    }
+
+const { title, cadence } = parsed.data
 
     const goal =await prisma.goal.create({
         data:{
