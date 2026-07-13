@@ -15,3 +15,12 @@ chrome.runtime.onInstalled.addListener(async () => {
     console.log('PixelSquire: already registered')
   }
 })
+chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
+  if (req.type === 'GET_MESSAGE') {
+    api
+      .get('/messages/next?context=periodic')
+      .then((msg) => sendResponse({ ok: true, msg }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }))
+    return true // async response için ŞART
+  }
+})
