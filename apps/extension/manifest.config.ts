@@ -6,7 +6,7 @@ export default defineManifest({
   version: '0.1.0',
   description: 'Your pixel squire, nudging you to quest daily',
   permissions: ['storage', 'alarms'],
-  host_permissions: [],
+  host_permissions: ['http://localhost:3001/*'],
   background: {
     service_worker: 'src/background/index.ts',
     type: 'module'
@@ -18,5 +18,9 @@ export default defineManifest({
   }],
   action: {
     default_popup: 'src/popup/index.html'
-  }
+  },
+  web_accessible_resources: [{
+    resources: ['sprites/*'],
+    matches: ['<all_urls>']
+  }]
 })
