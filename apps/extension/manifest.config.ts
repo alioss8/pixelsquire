@@ -8,7 +8,7 @@ export default defineManifest({
   permissions: ['storage', 'alarms'],
   host_permissions: ['http://localhost:3001/*'],
   background: {
-    service_worker: 'src/background/index.ts',
+    service_worker: 'src/background/main.ts',
     type: 'module'
   },
   content_scripts: [{
