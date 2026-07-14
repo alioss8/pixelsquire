@@ -5,7 +5,7 @@ export default defineManifest({
   name: 'PixelSquire',
   version: '0.1.0',
   description: 'Your pixel squire, nudging you to quest daily',
-  permissions: ['storage', 'alarms'],
+  permissions: ['storage', 'alarms', 'tabs'],
   host_permissions: ['http://localhost:3001/*'],
   background: {
     service_worker: 'src/background/main.ts',
