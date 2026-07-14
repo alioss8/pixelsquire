@@ -49,18 +49,40 @@ function mountMascot() {
 
   const knight = shadow.getElementById('knight')!
   const bubble = shadow.getElementById('bubble')!
-  
 
+  function showBubble(text: string) {
+    bubble.textContent = text
+    bubble.classList.add('show')
+    setTimeout(() => bubble.classList.remove('show'), 6000)
+  }
+
+  // Tıklama ile mesaj göster
   knight.addEventListener('click', () => {
-    console.log('KNIGHT CLICKED')
     chrome.runtime.sendMessage({ type: 'GET_MESSAGE' }, (res) => {
-      if (res?.ok) {
-        bubble.textContent = res.msg.text
-        bubble.classList.add('show')
-        setTimeout(() => bubble.classList.remove('show'), 6000)
-      }
+      if (res?.ok) showBubble(res.msg.text)
     })
   })
+
+  // Background'dan gelen mesajları dinle
+  chrome.runtime.onMessage.addListener((req) => {
+    if (req.type === 'SHOW_MESSAGE') {
+      showBubble(req.msg.text)
+    }
+  })
+
+  // Her 90 dakikada bir otomatik mesaj iste
+  setInterval(() => {
+    chrome.runtime.sendMessage({ type: 'GET_MESSAGE' }, (res) => {
+      if (res?.ok) showBubble(res.msg.text)
+    })
+  }, 5400000) // 90 dakika = 90 * 60 * 1000 = 5.400.000 ms
+
+  // İlk mesajı hemen göster (opsiyonel)
+  setTimeout(() => {
+    chrome.runtime.sendMessage({ type: 'GET_MESSAGE' }, (res) => {
+      if (res?.ok) showBubble(res.msg.text)
+    })
+  }, 1000)
 
   document.body.appendChild(host)
 }
