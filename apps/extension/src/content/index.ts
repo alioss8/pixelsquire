@@ -51,10 +51,35 @@ function mountMascot() {
   const bubble = shadow.getElementById('bubble')!
 
   function showBubble(text: string) {
-    bubble.textContent = text
-    bubble.classList.add('show')
-    setTimeout(() => bubble.classList.remove('show'), 6000)
-  }
+  bubble.innerHTML = `
+    <div>${text}</div>
+    <button id="checkin-btn">Görev tamam ⚔️</button>
+    <button id="mute-btn">Bugün sustur</button>`
+
+  // ✅ Butonları bul (innerHTML'den SONRA)
+  const checkinBtn = bubble.querySelector('#checkin-btn')
+  const muteBtn = bubble.querySelector('#mute-btn')
+
+  // ✅ Checkin butonu → CHECKIN_QUICK, sonra balonu kapat
+  checkinBtn?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'CHECKIN_QUICK' }, () => {
+      bubble.classList.remove('show')
+    })
+  })
+
+  // ✅ Mute butonu → MUTE_TODAY, sonra balonu kapat
+  muteBtn?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'MUTE_TODAY' }, () => {
+      bubble.classList.remove('show')
+    })
+  })
+
+  // ✅ Balonu göster
+  bubble.classList.add('show')
+
+  // Otomatik kapanma — buton varken 6sn kısa olabilir, 12'ye çıkardım
+  setTimeout(() => bubble.classList.remove('show'), 12000)
+}
 
   // Tıklama ile mesaj göster
   knight.addEventListener('click', () => {
