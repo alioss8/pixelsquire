@@ -1,19 +1,49 @@
 import { api } from './api'
 
-// ✅ MESSAGE LISTENER — content script'ten gelen istekler
 chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
   if (req.type === 'GET_MESSAGE') {
-    api
-      .get('/messages/next?context=periodic')
+    api.get('/messages/next?context=periodic')
       .then((msg) => sendResponse({ ok: true, msg }))
       .catch((err) => sendResponse({ ok: false, error: String(err) }))
-    return true // async response için ŞART
+    return true
+  }
+
+  if (req.type === 'CHECKIN_QUICK') {
+    api.post('/checkin', {})
+      .then((msg) => sendResponse({ ok: true, msg }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }))
+    return true
+  }
+
+  if (req.type === 'GET_SUMMARY') {
+    api.get('/me/summary')
+      .then((data) => sendResponse({ ok: true, data }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }))
+    return true
+  }
+
+  if (req.type === 'MUTE_TODAY') {
+  const tomorrow = new Date()
+  tomorrow.setHours(24, 0, 0, 0)   // bugünün sonu = yarın 00:00
+  chrome.storage.local.set({ mutedUntil: tomorrow.getTime() })
+    .then(() => sendResponse({ ok: true }))
+  return true
+  }
+  if (req.type === 'CREATE_GOAL') {
+    api.post('/goals', { title: req.title, cadence: req.cadence })
+      .then((goal) => sendResponse({ ok: true, goal }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }))
+    return true
   }
 })
 
-// ✅ ALARM LISTENER — alarm tetiklendiğinde balon aç
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'speak') return
+
+  const stored = await chrome.storage.local.get('mutedUntil')
+  const mutedUntil = (stored.mutedUntil as number) ?? 0
+  if (Date.now() < mutedUntil) return 
 
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
   if (!tab?.id) return
@@ -26,7 +56,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 })
 
-// ✅ INSTALL LISTENER
+
 chrome.runtime.onInstalled.addListener(async () => {
   const { token } = await chrome.storage.local.get('token')
 
