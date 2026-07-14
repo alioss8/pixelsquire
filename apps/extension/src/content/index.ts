@@ -70,19 +70,19 @@ function mountMascot() {
     }
   })
 
-  // Her 90 dakikada bir otomatik mesaj iste
-  setInterval(() => {
-    chrome.runtime.sendMessage({ type: 'GET_MESSAGE' }, (res) => {
-      if (res?.ok) showBubble(res.msg.text)
-    })
-  }, 5400000) // 90 dakika = 90 * 60 * 1000 = 5.400.000 ms
+  // // Her 90 dakikada bir otomatik mesaj iste
+  // setInterval(() => {
+  //   chrome.runtime.sendMessage({ type: 'GET_MESSAGE' }, (res) => {
+  //     if (res?.ok) showBubble(res.msg.text)
+  //   })
+  // }, 5400000) // 90 dakika = 90 * 60 * 1000 = 5.400.000 ms
 
-  // İlk mesajı hemen göster (opsiyonel)
-  setTimeout(() => {
-    chrome.runtime.sendMessage({ type: 'GET_MESSAGE' }, (res) => {
-      if (res?.ok) showBubble(res.msg.text)
-    })
-  }, 1000)
+  // // İlk mesajı hemen göster (opsiyonel)
+  // setTimeout(() => {
+  //   chrome.runtime.sendMessage({ type: 'GET_MESSAGE' }, (res) => {
+  //     if (res?.ok) showBubble(res.msg.text)
+  //   })
+  // }, 1000)
 
   document.body.appendChild(host)
 }
