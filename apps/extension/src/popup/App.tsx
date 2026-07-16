@@ -4,6 +4,7 @@ export default function PixelSquireWidget() {
   const [streak, setStreak] = useState<number | null>(null)
   const [goals, setGoals] = useState<number | null>(null)
   const [title, setTitle] = useState('')
+  const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'GET_SUMMARY' }, (res) => {
@@ -11,6 +12,9 @@ export default function PixelSquireWidget() {
         setStreak(res.data.streak)
         setGoals(res.data.activeGoals)
       }
+    })
+    chrome.storage.local.get('mascotHidden').then((r) => {
+      setHidden(Boolean(r.mascotHidden))
     })
   }, [])
 
@@ -25,6 +29,22 @@ export default function PixelSquireWidget() {
         }
       }
     )
+  }
+
+  async function toggleMascot() {
+    const next = !hidden
+    await chrome.storage.local.set({ mascotHidden: next })
+    setHidden(next)
+
+    // gösteriliyorsa açık sekmelere haber ver
+    if (!next) {
+      const tabs = await chrome.tabs.query({})
+      for (const tab of tabs) {
+        if (tab.id) {
+          chrome.tabs.sendMessage(tab.id, { type: 'SHOW_MASCOT' }).catch(() => {})
+        }
+      }
+    }
   }
 
   return (
@@ -54,6 +74,10 @@ export default function PixelSquireWidget() {
         />
         <button style={styles.button} onClick={addGoal}>+</button>
       </div>
+
+      <button style={styles.toggle} onClick={toggleMascot}>
+        {hidden ? 'Şövalyeyi göster' : 'Şövalyeyi gizle'}
+      </button>
     </div>
   )
 }
@@ -103,5 +127,18 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#e0a458', border: 'none', borderRadius: 9, color: '#2e2419',
     fontFamily: "'Cinzel', serif", fontWeight: 700, fontSize: 20,
     width: 42, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
+  },
+  toggle: {
+    marginTop: 14,
+    width: '100%',
+    background: 'transparent',
+    border: '1px solid #6b5335',
+    borderRadius: 9,
+    color: '#b89b76',
+    fontFamily: "'Nunito', system-ui, sans-serif",
+    fontSize: 12,
+    fontWeight: 600,
+    padding: '8px 10px',
+    cursor: 'pointer',
   },
 }
