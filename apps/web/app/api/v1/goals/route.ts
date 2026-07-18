@@ -29,7 +29,7 @@ const { title, cadence } = parsed.data
         data:{
             title:title,
             cadence:cadence,
-            deviceId:device.id
+            userId:device.userId,
         },
      })
 
@@ -43,7 +43,7 @@ const device =await authenticate(req.headers.get('authorization'))
     return Response.json({error:'unauthorized'},{status:401})
 
 const goals = await prisma.goal.findMany({
-    where:{deviceId:device.id}
+    where: { userId: device.userId }
 })
     return Response.json(goals,{status:200})
 

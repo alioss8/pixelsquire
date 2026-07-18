@@ -8,25 +8,30 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  email     String?  @unique
+  email     String?  @unique      // anonimken null
+  googleId  String?  @unique      // Google'ın "sub" değeri
+  name      String?
   createdAt DateTime @default(now())
-  devices   Device[]
+
+  devices Device[]
+  goals   Goal[]
 }
 
 model Device {
   id                String                @id @default(cuid())
   secretHash        String
   platform          Platform              @default(EXTENSION)
-  userId            String?
+  userId            String                                    // ← zorunlu
   timezone          String                @default("Europe/Istanbul")
   createdAt         DateTime              @default(now())
   lastSeenAt        DateTime              @default(now())
-  user              User?                 @relation(fields: [userId], references: [id])
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   events            Event[]
   generatedMessages GeneratedMessage[]
-  goals             Goal[]
   schedule          NotificationSchedule?
   pushSub           PushSubscription?
+
+  @@index([userId])
 }
 
 model PushSubscription {
@@ -52,15 +57,15 @@ model Message {
 
 model Goal {
   id         String    @id @default(cuid())
-  deviceId   String
+  userId     String                                          // ← deviceId yerine
   title      String
   cadence    Cadence   @default(DAILY)
   createdAt  DateTime  @default(now())
   archivedAt DateTime?
   checkins   Checkin[]
-  device     Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([deviceId, archivedAt])
+  @@index([userId, archivedAt])
 }
 
 model Checkin {
