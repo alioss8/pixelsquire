@@ -9,7 +9,7 @@ export async function GET(req:Request) {
     }
     
     
-    const streak = await calcStreak(device.id)
+    const streak = await calcStreak(device.userId)
     const activeGoals = await prisma.goal.count({
         where: { userId: device.userId , archivedAt: null},
     }) 

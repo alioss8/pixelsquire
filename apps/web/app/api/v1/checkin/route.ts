@@ -28,7 +28,7 @@ export async function POST(req:Request) {
         data: { goalId: goal.id, date: today },
     })
 
-    const streak = await calcStreak(device.id)
+    const streak = await calcStreak(device.userId)
     return Response.json({ ok: true, streak })
 
 }
