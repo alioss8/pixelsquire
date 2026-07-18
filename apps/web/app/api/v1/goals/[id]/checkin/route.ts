@@ -12,7 +12,7 @@ export async function POST(req:Request,{ params }: { params: Promise<{ id: strin
     today.setHours(0,0,0,0)
 
     const goal = await prisma.goal.findFirst({
-        where: { id: id, deviceId: device.id },
+        where: { id: id, userId: device.userId },
     })
     if (!goal) {
         return Response.json({ error: 'goal not found' }, { status: 404 })
