@@ -43,7 +43,7 @@ const device =await authenticate(req.headers.get('authorization'))
     return Response.json({error:'unauthorized'},{status:401})
 
 const goals = await prisma.goal.findMany({
-    where:{userId:device.id}
+    where: { userId: device.userId }
 })
     return Response.json(goals,{status:200})
 
