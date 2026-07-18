@@ -74,8 +74,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.redirect(
-      `${process.env.APP_URL}/auth/merge?googleUserId=${googleUser.id}&anonUserId=${anonUser?.id}&deviceToken=${savedDeviceToken}`
-    )
+  `${process.env.APP_URL}/auth/merge-accounts?googleUserId=${googleUser.id}&anonUserId=${anonUser?.id}&deviceToken=${savedDeviceToken}`
+  )
 
   } catch (error) {
     console.error("Callback Hatası:", error)

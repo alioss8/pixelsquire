@@ -36,7 +36,6 @@ export default function PixelSquireWidget() {
     await chrome.storage.local.set({ mascotHidden: next })
     setHidden(next)
 
-    // gösteriliyorsa açık sekmelere haber ver
     if (!next) {
       const tabs = await chrome.tabs.query({})
       for (const tab of tabs) {
@@ -45,6 +44,17 @@ export default function PixelSquireWidget() {
         }
       }
     }
+  }
+
+  async function handleGoogleLogin() {
+    const tokenData = await chrome.storage.local.get('token')
+    if (!tokenData.token) {
+      alert('Token not found')
+      return
+    }
+
+    const authUrl = `http://localhost:3001/api/v1/auth/google?device_token=${tokenData.token}`
+    chrome.tabs.create({ url: authUrl })
   }
 
   return (
@@ -76,7 +86,11 @@ export default function PixelSquireWidget() {
       </div>
 
       <button style={styles.toggle} onClick={toggleMascot}>
-        {hidden ? 'Şövalyeyi göster' : 'Şövalyeyi gizle'}
+        {hidden ? 'Show knight' : 'Hide knight'}
+      </button>
+
+      <button style={styles.googleButton} onClick={handleGoogleLogin}>
+        Sign in with Google
       </button>
     </div>
   )
@@ -140,5 +154,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     padding: '8px 10px',
     cursor: 'pointer',
+  },
+  googleButton: {
+    marginTop: 10,
+    width: '100%',
+    background: '#ffffff',
+    border: '1px solid #d3d3d3',
+    borderRadius: 9,
+    color: '#1f1f1f',
+    fontFamily: "'Nunito', system-ui, sans-serif",
+    fontSize: 12,
+    fontWeight: 600,
+    padding: '8px 10px',
+    cursor: 'pointer',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
   },
 }
