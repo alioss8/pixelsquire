@@ -13,7 +13,7 @@ export async function POST(req:Request) {
     const today = new Date(localDateStr + 'T00:00:00Z')
     const goal = await prisma.goal.findFirst({
         where :{
-            deviceId: device.id ,
+            userId: device.userId ,
             checkins:{
                 none:{date:today}
             }

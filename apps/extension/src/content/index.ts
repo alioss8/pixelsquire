@@ -9,7 +9,7 @@ function getScene(): string {
   const h = new Date().getHours()
   if (h >= 6 && h < 17) return 'scene-forest.png'
   if (h >= 17 && h < 21) return 'scene-castle.png'
-  return 'scene-camp-tile.png'
+  return 'scene-camp.png'
 }
 
 async function mountMascot() {

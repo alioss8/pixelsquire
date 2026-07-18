@@ -22,9 +22,9 @@ function pickCategory(context: string, hour: number, streak: number): string {
     return 'GOAL_NUDGE'; 
 } 
 
-export async function pickNextMessage(device:{id:string;timezone:string},context:string) {
+export async function pickNextMessage(device:{id:string; timezone:string ; userId: string;},context:string) {
 
-    const streak = await calcStreak(device.id)
+    const streak = await calcStreak(device.userId)
     const hour = parseInt(formatInTimeZone(new Date(), device.timezone, 'H'))
     const category = pickCategory(context,hour,streak)
 
@@ -35,7 +35,7 @@ export async function pickNextMessage(device:{id:string;timezone:string},context
     const chosen = messages[Math.floor(Math.random() * messages.length)]
 
     const goalCount = await prisma.goal.count({
-        where: {deviceId:device.id , archivedAt:null },
+        where: { userId: device.userId, archivedAt: null }
     })
 
     const text = chosen.text

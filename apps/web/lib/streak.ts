@@ -1,9 +1,9 @@
 import { prisma } from "./db"
 import {format, subDays} from 'date-fns'
 
-export async function calcStreak(deviceId: string): Promise<number> {
+export async function calcStreak(userId: string): Promise<number> {
   const days = await prisma.checkin.findMany({
-    where : {goal : {deviceId}} ,
+    where : {goal : {userId}} ,
     select: {date : true} ,
     distinct : ['date'],
     orderBy : {date : 'desc'},
