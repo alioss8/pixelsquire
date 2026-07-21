@@ -1,7 +1,7 @@
 import { authenticate } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { webpush } from "@/lib/push";
+import { getWebPush } from "@/lib/push";
 
 export async function POST(request: NextRequest) {
   const device = await authenticate(request);
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "no subscription" }, { status: 404 });
   }
   try {
+    const webpush = getWebPush(); // ← çağır, webpush objesini al
     await webpush.sendNotification(
       {
         endpoint: sub.endpoint,
