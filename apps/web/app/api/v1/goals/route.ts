@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       userId: device.userId,
     },
   });
+  console.log("CHECKIN device:", device?.id, "user:", device?.userId);
 
   return Response.json(goal, { status: 201 });
 }
