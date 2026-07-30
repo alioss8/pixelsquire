@@ -20,14 +20,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 403 })
     }
 
-    await prisma.device.update({
-      where: { id: deviceId },
-      data: { userId: keepUserId },
-    })
-
-    await prisma.user.delete({
-      where: { id: deleteUserId },
-    })
+    await prisma.$transaction([
+      prisma.device.updateMany({
+        where: { userId: deleteUserId },
+        data: { userId: keepUserId },
+      }),
+      prisma.goal.updateMany({
+        where: { userId: deleteUserId },
+        data: { userId: keepUserId },
+      }),
+      prisma.user.delete({
+        where: { id: deleteUserId },
+      }),
+    ])
 
     return NextResponse.json({ ok: true })
 
