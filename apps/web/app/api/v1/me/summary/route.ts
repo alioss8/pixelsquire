@@ -14,5 +14,11 @@ export async function GET(request: NextRequest) {
     where: { userId: device.userId, archivedAt: null },
   });
 
-  return Response.json({ streak, activeGoals });
+  return Response.json({
+    streak,
+    activeGoals,
+    user: device.user.email
+      ? { email: device.user.email, name: device.user.name }
+      : null,
+  });
 }
