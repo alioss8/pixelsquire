@@ -16,15 +16,7 @@ export async function POST(request: NextRequest) {
 
   for (const sub of subs) {
     const localHour = formatInTimeZone(now, sub.device.timezone, "H");
-    console.log(
-      "device:",
-      sub.device.id,
-      "localHour:",
-      localHour,
-      "tz:",
-      sub.device.timezone,
-    );
-    if (localHour !== "17") continue;
+    if (localHour !== "22") continue;
     const localDateStr = formatInTimeZone(
       now,
       sub.device.timezone,
@@ -37,7 +29,6 @@ export async function POST(request: NextRequest) {
         goal: { userId: sub.device.userId },
       },
     });
-    console.log("completedToday:", completedToday);
     if (completedToday === 0) continue; // bugün bir şey yapmadıysa gönderme
     const title = "PixelSquire ⚔️";
     const body = `Bugün ${completedToday} quest tamamladın!`;
