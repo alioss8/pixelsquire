@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   for (const sub of subs) {
     const localHour = formatInTimeZone(now, sub.device.timezone, "H");
-    if (localHour !== "22") continue;
+    if (localHour !== "21") continue;
     const localDateStr = formatInTimeZone(
       now,
       sub.device.timezone,

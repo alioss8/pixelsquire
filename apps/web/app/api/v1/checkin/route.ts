@@ -36,6 +36,5 @@ export async function POST(request: NextRequest) {
   });
 
   const streak = await calcStreak(device.userId);
-  console.log("CHECKIN device:", device?.id, "user:", device?.userId);
   return Response.json({ ok: true, streak });
 }
