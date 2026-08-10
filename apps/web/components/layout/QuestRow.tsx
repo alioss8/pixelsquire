@@ -53,7 +53,7 @@ export function QuestRow({
         >
           {quest.doneToday ? "✓" : ""}
         </button>
-        {justChecked && <MascotStage state="happy" frame={false} size={30} />}
+        {justChecked && <MascotStage state="happy" frame={false} size={84} />}
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 15, color: "var(--text-primary)", fontWeight: 700 }}>{quest.title}</div>
           <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
