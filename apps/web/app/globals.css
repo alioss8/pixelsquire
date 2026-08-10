@@ -119,3 +119,18 @@ body {
   color: var(--foreground);
   font-family: var(--font-body);
 }
+
+.ps-nav-desktop {
+  display: flex;
+}
+.ps-nav-hamburger {
+  display: none;
+}
+@media (max-width: 767px) {
+  .ps-nav-desktop {
+    display: none;
+  }
+  .ps-nav-hamburger {
+    display: flex;
+  }
+}

@@ -58,7 +58,16 @@ export function MascotStage({
     : { position: "relative", width: size, height: size };
 
   return (
-    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+    <div
+      style={{
+        position: "relative",
+        width: size,
+        height: size,
+        flexShrink: 0,
+        userSelect: "none",
+        WebkitUserSelect: "none",
+      }}
+    >
       <style>{`@keyframes cycle_${id}{from{background-position:0 0;}to{background-position:-${sprite.frames * spriteSize}px 0;}}`}</style>
       <div style={stageStyle}>
         <div

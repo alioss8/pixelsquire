@@ -35,9 +35,17 @@ export function Heatmap({ history = [] }: { history?: StreakHistoryPoint[] }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", gap: 2, overflowX: "auto", paddingTop: 24 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${weeks.length}, 1fr)`,
+          gap: 4,
+          width: "100%",
+          paddingTop: 24,
+        }}
+      >
         {weeks.map((week, wi) => (
-          <div key={wi} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div key={wi} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {week.map((day, di) => {
               const key = `${wi}-${di}`;
               return (
@@ -47,8 +55,8 @@ export function Heatmap({ history = [] }: { history?: StreakHistoryPoint[] }) {
                     onMouseLeave={() => setActive((cur) => (cur === key ? null : cur))}
                     onClick={() => day && setActive((cur) => (cur === key ? null : key))}
                     style={{
-                      width: 12,
-                      height: 12,
+                      width: "100%",
+                      aspectRatio: "1",
                       cursor: day ? "pointer" : "default",
                       background: day ? heatColor(day.count, max) : "transparent",
                     }}
