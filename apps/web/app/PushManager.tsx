@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/Button";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -56,5 +57,9 @@ export function PushRegister() {
     });
   }
 
-  return <button onClick={subscribeToPush}>Bildirimleri aç</button>;
+  return (
+    <Button variant="ghost" size="sm" onClick={subscribeToPush}>
+      🔔 Bildirimleri aç
+    </Button>
+  );
 }

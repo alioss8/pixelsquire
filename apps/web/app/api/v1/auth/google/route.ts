@@ -4,7 +4,9 @@ import { cookies } from "next/headers";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const deviceToken = searchParams.get("device_token");
+    const cookieStore = await cookies();
+    const deviceToken =
+      searchParams.get("device_token") ?? cookieStore.get("token")?.value ?? null;
 
     // Token yoksa hata dön
     if (!deviceToken) {
@@ -15,8 +17,6 @@ export async function GET(request: NextRequest) {
     }
 
     const state = crypto.randomUUID();
-
-    const cookieStore = await cookies();
 
     cookieStore.set("oauth_state", state, {
       httpOnly: true,

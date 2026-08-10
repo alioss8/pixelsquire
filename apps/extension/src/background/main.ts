@@ -73,6 +73,6 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
   
   const stored = await chrome.storage.local.get('speakInterval')
-  const interval = (stored.speakInterval as number) ?? 3
+  const interval = (stored.speakInterval as number) ?? 90
   chrome.alarms.create('speak', { periodInMinutes: interval })
 })

@@ -2,6 +2,11 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { authenticateToken } from "@/lib/auth";
+import { createRemoteJWKSet, jwtVerify } from "jose";
+
+const googleJwks = createRemoteJWKSet(
+  new URL("https://www.googleapis.com/oauth2/v3/certs"),
+);
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,14 +48,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userInfoResponse = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`,
-    );
-    const userInfo = await userInfoResponse.json();
+    const { payload: userInfo } = await jwtVerify(idToken, googleJwks, {
+      issuer: ["https://accounts.google.com", "accounts.google.com"],
+      audience: clientId,
+    });
 
-    const googleId = userInfo.sub;
-    const name = userInfo.name;
-    const email = userInfo.email || "";
+    const googleId = userInfo.sub as string;
+    const name = userInfo.name as string | undefined;
+    const email = (userInfo.email as string | undefined) || "";
 
     const device = await authenticateToken(savedDeviceToken);
     if (!device?.userId) {
