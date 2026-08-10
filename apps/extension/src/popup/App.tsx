@@ -1,25 +1,47 @@
 import { useEffect, useState } from "react";
 
 type GoogleUser = { email: string; name: string | null };
+type Cadence = "DAILY" | "WEEKLY";
+type Goal = {
+  id: string;
+  title: string;
+  cadence: Cadence;
+  streak: number;
+  doneToday: boolean;
+};
+type Tab = "account" | "quests";
 
 export default function PixelSquireWidget() {
+  const [tab, setTab] = useState<Tab>("account");
   const [streak, setStreak] = useState<number | null>(null);
-  const [goals, setGoals] = useState<number | null>(null);
+  const [goals, setGoals] = useState<Goal[] | null>(null);
+  const [goalsError, setGoalsError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [hidden, setHidden] = useState(false);
   const [user, setUser] = useState<GoogleUser | null>(null);
+
+  function loadGoals() {
+    chrome.runtime.sendMessage({ type: "GET_GOALS" }, (res) => {
+      if (res?.ok) {
+        setGoals(res.goals);
+        setGoalsError(null);
+      } else {
+        setGoalsError(res?.error ?? "Questler yüklenemedi");
+      }
+    });
+  }
 
   useEffect(() => {
     chrome.runtime.sendMessage({ type: "GET_SUMMARY" }, (res) => {
       if (res?.ok) {
         setStreak(res.data.streak);
-        setGoals(res.data.activeGoals);
         setUser(res.data.user ?? null);
       }
     });
     chrome.storage.local.get("mascotHidden").then((r) => {
       setHidden(Boolean(r.mascotHidden));
     });
+    loadGoals();
   }, []);
 
   function addGoal() {
@@ -29,10 +51,16 @@ export default function PixelSquireWidget() {
       (res) => {
         if (res?.ok) {
           setTitle("");
-          setGoals((g) => (g ?? 0) + 1);
+          loadGoals();
         }
       },
     );
+  }
+
+  function checkin(goalId: string) {
+    chrome.runtime.sendMessage({ type: "GOAL_CHECKIN", goalId }, (res) => {
+      if (res?.ok) loadGoals();
+    });
   }
 
   async function toggleMascot() {
@@ -42,10 +70,10 @@ export default function PixelSquireWidget() {
 
     if (!next) {
       const tabs = await chrome.tabs.query({});
-      for (const tab of tabs) {
-        if (tab.id) {
+      for (const t of tabs) {
+        if (t.id) {
           chrome.tabs
-            .sendMessage(tab.id, { type: "SHOW_MASCOT" })
+            .sendMessage(t.id, { type: "SHOW_MASCOT" })
             .catch(() => {});
         }
       }
@@ -70,42 +98,92 @@ export default function PixelSquireWidget() {
         <h1 style={styles.title}>PixelSquire</h1>
       </div>
 
-      <div style={styles.statBox}>
-        <div style={styles.flame}>🔥</div>
-        <div style={styles.statValue}>{streak !== null ? streak : "—"}</div>
-        <div style={styles.statLabel}>day streak</div>
-      </div>
-
-      <div style={styles.goalCount}>
-        {goals !== null ? goals : "—"} active {goals === 1 ? "quest" : "quests"}
-      </div>
-
-      <div style={styles.inputRow}>
-        <input
-          style={styles.input}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && addGoal()}
-          placeholder="Add a new quest…"
-        />
-        <button style={styles.button} onClick={addGoal}>
-          +
+      <div style={styles.tabBar}>
+        <button
+          style={{ ...styles.tabBtn, ...(tab === "account" ? styles.tabBtnActive : {}) }}
+          onClick={() => setTab("account")}
+        >
+          Hesap
+        </button>
+        <button
+          style={{ ...styles.tabBtn, ...(tab === "quests" ? styles.tabBtnActive : {}) }}
+          onClick={() => setTab("quests")}
+        >
+          Questler
         </button>
       </div>
 
-      <button style={styles.toggle} onClick={toggleMascot}>
-        {hidden ? "Show knight" : "Hide knight"}
-      </button>
+      {tab === "account" && (
+        <div>
+          <div style={styles.statBox}>
+            <div style={styles.flame}>🔥</div>
+            <div style={styles.statValue}>{streak !== null ? streak : "—"}</div>
+            <div style={styles.statLabel}>day streak</div>
+          </div>
 
-      {user ? (
-        <div style={styles.accountBox}>
-          <div style={styles.accountName}>{user.name || user.email}</div>
-          <div style={styles.accountEmail}>{user.email}</div>
+          <button style={styles.toggle} onClick={toggleMascot}>
+            {hidden ? "Show knight" : "Hide knight"}
+          </button>
+
+          {user ? (
+            <div style={styles.accountBox}>
+              <div style={styles.accountName}>{user.name || user.email}</div>
+              <div style={styles.accountEmail}>{user.email}</div>
+            </div>
+          ) : (
+            <button style={styles.googleButton} onClick={handleGoogleLogin}>
+              Sign in with Google
+            </button>
+          )}
         </div>
-      ) : (
-        <button style={styles.googleButton} onClick={handleGoogleLogin}>
-          Sign in with Google
-        </button>
+      )}
+
+      {tab === "quests" && (
+        <div>
+          <div style={styles.goalCount}>
+            {goals !== null ? goals.length : "—"} active{" "}
+            {goals?.length === 1 ? "quest" : "quests"}
+          </div>
+
+          <div style={styles.inputRow}>
+            <input
+              style={styles.input}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addGoal()}
+              placeholder="Add a new quest…"
+            />
+            <button style={styles.button} onClick={addGoal}>
+              +
+            </button>
+          </div>
+
+          {goalsError && <div style={styles.error}>{goalsError}</div>}
+
+          <div style={styles.questList}>
+            {goals?.length === 0 && !goalsError && (
+              <div style={styles.empty}>Henüz aktif quest yok.</div>
+            )}
+            {goals?.map((g) => (
+              <div key={g.id} style={styles.questCard}>
+                <div style={styles.questTop}>
+                  <span style={styles.questTitle}>{g.title}</span>
+                  <span style={styles.questStreak}>🔥{g.streak}</span>
+                </div>
+                <button
+                  style={{
+                    ...styles.checkinBtn,
+                    ...(g.doneToday ? styles.checkinBtnDone : {}),
+                  }}
+                  disabled={g.doneToday}
+                  onClick={() => checkin(g.id)}
+                >
+                  {g.doneToday ? "TAMAMLANDI ✓" : "TAMAMLA ⚔️"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -127,7 +205,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   crest: { fontSize: 20, filter: "drop-shadow(0 1px 2px rgba(0,0,0,.5))" },
   title: {
@@ -137,6 +215,26 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#e0a458",
     margin: 0,
     letterSpacing: 0.5,
+  },
+  tabBar: {
+    display: "flex",
+    marginBottom: 18,
+    border: "1px solid #6b5335",
+  },
+  tabBtn: {
+    flex: 1,
+    background: "transparent",
+    border: "none",
+    color: "#b89b76",
+    fontFamily: "'Nunito', system-ui, sans-serif",
+    fontWeight: 700,
+    fontSize: 12,
+    padding: "9px 0",
+    cursor: "pointer",
+  },
+  tabBtnActive: {
+    background: "rgba(224,164,88,0.16)",
+    color: "#e0a458",
   },
   statBox: {
     background: "rgba(224,164,88,0.08)",
@@ -166,7 +264,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     fontWeight: 600,
     color: "#7a9b5e",
-    marginBottom: 18,
+    marginBottom: 14,
   },
   inputRow: { display: "flex", gap: 8 },
   input: {
@@ -192,8 +290,69 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
   },
-  toggle: {
+  error: {
+    marginTop: 12,
+    padding: "8px 10px",
+    background: "rgba(200,80,80,0.12)",
+    border: "1px solid #a85454",
+    color: "#e8b3b3",
+    fontSize: 11,
+  },
+  questList: {
     marginTop: 14,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    maxHeight: 260,
+    overflowY: "auto",
+  },
+  empty: {
+    color: "#b89b76",
+    fontSize: 12,
+    padding: "10px 0",
+  },
+  questCard: {
+    background: "rgba(224,164,88,0.08)",
+    border: "1px solid #6b5335",
+    padding: "10px 12px",
+    textAlign: "left",
+  },
+  questTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  questTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#ede4d3",
+  },
+  questStreak: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#e0a458",
+  },
+  checkinBtn: {
+    width: "100%",
+    background: "#ffcd75",
+    border: "none",
+    color: "#1c130c",
+    fontFamily: "'Nunito', system-ui, sans-serif",
+    fontWeight: 700,
+    fontSize: 11,
+    padding: "7px 0",
+    cursor: "pointer",
+  },
+  checkinBtnDone: {
+    background: "transparent",
+    border: "1px solid #7a9b5e",
+    color: "#7a9b5e",
+    cursor: "default",
+  },
+  toggle: {
+    marginTop: 0,
+    marginBottom: 12,
     width: "100%",
     background: "transparent",
     border: "1px solid #6b5335",
@@ -206,7 +365,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
   },
   googleButton: {
-    marginTop: 10,
+    marginTop: 0,
     width: "100%",
     background: "#ffffff",
     border: "1px solid #d3d3d3",
@@ -220,7 +379,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
   },
   accountBox: {
-    marginTop: 10,
+    marginTop: 0,
     width: "100%",
     background: "rgba(224,164,88,0.08)",
     border: "1px solid #6b5335",

@@ -70,42 +70,50 @@ export async function GET(request: NextRequest) {
     });
     const googleUser = await prisma.user.findUnique({ where: { googleId } });
 
+    function successResponse() {
+      const response = NextResponse.redirect(
+        `${process.env.APP_URL}/auth-success?email=${email}`,
+      );
+      response.cookies.set("token", savedDeviceToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 30,
+        path: "/",
+      });
+      return response;
+    }
+
     if (!googleUser) {
       await prisma.user.update({
         where: { id: device.userId },
         data: { googleId, email, name },
       });
-
-      const response = NextResponse.redirect(
-        `${process.env.APP_URL}/auth/success?email=${email}`,
-      );
-      response.cookies.set("token", savedDeviceToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 30,
-        path: "/",
-      });
-      return response;
+      return successResponse();
     }
 
     if (googleUser.id === anonUser?.id) {
-      const response = NextResponse.redirect(
-        `${process.env.APP_URL}/auth/success?email=${email}`,
-      );
-      response.cookies.set("token", savedDeviceToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 30,
-        path: "/",
-      });
-      return response;
+      return successResponse();
     }
 
-    return NextResponse.redirect(
-      `${process.env.APP_URL}/auth/merge-accounts?googleUserId=${googleUser.id}&anonUserId=${anonUser?.id}&deviceToken=${savedDeviceToken}`,
-    );
+    // Bu cihaz zaten başka bir anonim hesaba bağlıydı, Google hesabı ise ayrı bir
+    // hesapta duruyor. Kullanıcıya seçim sordurmadan Google hesabında birleştir:
+    // anonim hesabın cihazları/questleri Google hesabına taşınır, anonim hesap silinir.
+    if (anonUser) {
+      await prisma.$transaction([
+        prisma.device.updateMany({
+          where: { userId: anonUser.id },
+          data: { userId: googleUser.id },
+        }),
+        prisma.goal.updateMany({
+          where: { userId: anonUser.id },
+          data: { userId: googleUser.id },
+        }),
+        prisma.user.delete({ where: { id: anonUser.id } }),
+      ]);
+    }
+
+    return successResponse();
   } catch (error) {
     console.error("Callback Hatası:", error);
     return NextResponse.json({ error: "İşlem başarısız" }, { status: 500 });

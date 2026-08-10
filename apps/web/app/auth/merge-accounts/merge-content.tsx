@@ -20,7 +20,7 @@ export function MergeContent() {
     });
 
     if (res.ok) {
-      window.location.href = `/auth/success?deviceToken=${deviceToken}`;
+      window.location.href = `/auth-success?deviceToken=${deviceToken}`;
     }
   };
 
