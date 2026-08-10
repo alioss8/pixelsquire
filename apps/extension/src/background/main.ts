@@ -8,13 +8,6 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
     return true
   }
 
-  if (req.type === 'CHECKIN_QUICK') {
-    api.post('/checkin', {})
-      .then((msg) => sendResponse({ ok: true, msg }))
-      .catch((err) => sendResponse({ ok: false, error: String(err) }))
-    return true
-  }
-
   if (req.type === 'GET_SUMMARY') {
     api.get('/me/summary')
       .then((data) => sendResponse({ ok: true, data }))
@@ -22,16 +15,23 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
     return true
   }
 
-  if (req.type === 'MUTE_TODAY') {
-  const tomorrow = new Date()
-  tomorrow.setHours(24, 0, 0, 0)   // bugünün sonu = yarın 00:00
-  chrome.storage.local.set({ mutedUntil: tomorrow.getTime() })
-    .then(() => sendResponse({ ok: true }))
-  return true
-  }
   if (req.type === 'CREATE_GOAL') {
     api.post('/goals', { title: req.title, cadence: req.cadence })
       .then((goal) => sendResponse({ ok: true, goal }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }))
+    return true
+  }
+
+  if (req.type === 'GET_GOALS') {
+    api.get('/goals')
+      .then((goals) => sendResponse({ ok: true, goals }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }))
+    return true
+  }
+
+  if (req.type === 'GOAL_CHECKIN') {
+    api.post(`/goals/${req.goalId}/checkin`, {})
+      .then((result) => sendResponse({ ok: true, result }))
       .catch((err) => sendResponse({ ok: false, error: String(err) }))
     return true
   }

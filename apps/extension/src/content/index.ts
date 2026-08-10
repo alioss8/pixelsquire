@@ -5,6 +5,9 @@ const SPEED: Record<KnightState, number> = {
   idle: 1.2, happy: 1.0, sad: 1.4, talk: 1.0, walk: 0.8,
 }
 
+const MASCOT_SIZE = 140
+const DRAG_THRESHOLD = 4
+
 function getScene(): string {
   const h = new Date().getHours()
   if (h >= 6 && h < 17) return 'scene-forest.png'
@@ -15,15 +18,63 @@ function getScene(): string {
 async function mountMascot() {
   if (document.getElementById('pixelsquire-root')) return
 
-  const { mascotHidden } = await chrome.storage.local.get('mascotHidden')
-  if (mascotHidden) return
+  let stored: { mascotHidden?: boolean; mascotPos?: unknown }
+  try {
+    stored = await chrome.storage.local.get(['mascotHidden', 'mascotPos'])
+  } catch {
+    // extension reload edildiğinde bu sekmedeki eski content script bağlamı geçersiz kalır
+    return
+  }
+  if (stored.mascotHidden) return
+  const mascotPos = stored.mascotPos as { left: number; top: number } | undefined
 
   const host = document.createElement('div')
   host.id = 'pixelsquire-root'
-  host.style.cssText =
-    'position:fixed;bottom:16px;right:16px;z-index:2147483647;'
+  host.style.cssText = 'position:fixed;z-index:2147483647;'
+
+  function clampPos(left: number, top: number) {
+    const maxLeft = Math.max(0, window.innerWidth - MASCOT_SIZE)
+    const maxTop = Math.max(0, window.innerHeight - MASCOT_SIZE)
+    return {
+      left: Math.min(Math.max(0, left), maxLeft),
+      top: Math.min(Math.max(0, top), maxTop),
+    }
+  }
+
+  if (mascotPos && typeof mascotPos.left === 'number' && typeof mascotPos.top === 'number') {
+    const { left, top } = clampPos(mascotPos.left, mascotPos.top)
+    host.style.left = `${left}px`
+    host.style.top = `${top}px`
+  } else {
+    host.style.right = '16px'
+    host.style.bottom = '16px'
+  }
 
   const shadow = host.attachShadow({ mode: 'closed' })
+
+  // CSS @font-face src: url() sayfanın CSP'sine tabi olduğundan bazı sitelerde
+  // engelleniyor. fetch() ile çekip FontFace API'siyle kaydetmek buna tabi değil.
+  void loadPixelFont()
+  async function loadPixelFont() {
+    try {
+      const [latinBuf, extBuf] = await Promise.all([
+        fetch(chrome.runtime.getURL('fonts/press-start-2p-latin.woff2')).then((r) => r.arrayBuffer()),
+        fetch(chrome.runtime.getURL('fonts/press-start-2p-latin-ext.woff2')).then((r) => r.arrayBuffer()),
+      ])
+      const latinFace = new FontFace('Press Start 2P', latinBuf, { weight: '400', style: 'normal' })
+      const extFace = new FontFace('Press Start 2P', extBuf, {
+        weight: '400',
+        style: 'normal',
+        unicodeRange:
+          'U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF',
+      })
+      await Promise.all([latinFace.load(), extFace.load()])
+      document.fonts.add(latinFace)
+      document.fonts.add(extFace)
+    } catch {
+      // font yüklenemezse monospace'e düşer
+    }
+  }
 
   const sceneUrl = chrome.runtime.getURL(`sprites/${getScene()}`)
   const sprites: Record<KnightState, { url: string; frames: number }> = {
@@ -36,11 +87,15 @@ async function mountMascot() {
 
   shadow.innerHTML = `
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
       * { box-sizing: border-box; }
 
-      .wrap { position: relative; width: 140px; height: 140px; }
+      .wrap {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        user-select: none;
+        -webkit-user-select: none;
+      }
 
       .stage {
         position: relative;
@@ -52,9 +107,11 @@ async function mountMascot() {
         border-radius: 0;
         overflow: hidden;
         image-rendering: pixelated;
-        cursor: pointer;
+        cursor: grab;
+        touch-action: none;
         box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
       }
+      .stage:active { cursor: grabbing; }
       .stage.moving {
         animation: scroll 20s linear infinite;
       }
@@ -110,24 +167,7 @@ async function mountMascot() {
       }
       .bubble.show { display: block; }
 
-      .bubble .msg { font-size: 9px; line-height: 1.6; margin-bottom: 12px; }
-      .bubble .btns { display: flex; flex-direction: column; gap: 8px; }
-
-      .bubble button {
-        font-family: 'Press Start 2P', monospace;
-        font-size: 8px;
-        padding: 9px 8px;
-        border: 3px solid #000;
-        cursor: pointer;
-        color: #1c130c;
-      }
-      .bubble button:active {
-        transform: translate(2px, 2px);
-        box-shadow: none !important;
-      }
-
-      .bubble .checkin { background: #ffcd75; box-shadow: 3px 3px 0 #000; }
-      .bubble .mute { background: #566c86; color: #ede4d3; box-shadow: 3px 3px 0 #000; }
+      .bubble .msg { font-size: 9px; line-height: 1.6; }
     </style>
     <div class="wrap">
       <div class="bubble" id="bubble"></div>
@@ -204,31 +244,7 @@ async function mountMascot() {
   }
 
   function showBubble(text: string) {
-    bubble.innerHTML = `
-      <div class="msg">${text}</div>
-      <div class="btns">
-        <button class="checkin" id="checkin-btn">GÖREV TAMAM ⚔️</button>
-        <button class="mute" id="mute-btn">BUGÜN SUSTUR</button>
-      </div>`
-
-    const checkinBtn = bubble.querySelector('#checkin-btn')
-    const muteBtn = bubble.querySelector('#mute-btn')
-
-    checkinBtn?.addEventListener('click', (e) => {
-      e.stopPropagation()
-      chrome.runtime.sendMessage({ type: 'CHECKIN_QUICK' }, () => {
-        hideBubble()
-        setState('happy', 3000)
-      })
-    })
-
-    muteBtn?.addEventListener('click', (e) => {
-      e.stopPropagation()
-      chrome.runtime.sendMessage({ type: 'MUTE_TODAY' }, () => {
-        hideBubble()
-        setState('sad', 2500)
-      })
-    })
+    bubble.innerHTML = `<div class="msg">${text}</div>`
 
     bubble.classList.add('show')
     setState('talk')
@@ -248,10 +264,61 @@ async function mountMascot() {
   })
 
   // Panoya tıklayınca mesaj göster
-  stage.addEventListener('click', () => {
+  function activateStage() {
     chrome.runtime.sendMessage({ type: 'GET_MESSAGE' }, (res) => {
       if (res?.ok) showBubble(res.msg.text)
     })
+  }
+
+  // ---- Sürükleme (tıklama ile ayırt edilir, sayfa butonlarının üstünde kalmasın diye) ----
+  let dragging = false
+  let dragMoved = false
+  let dragStartX = 0
+  let dragStartY = 0
+  let pointerOffsetX = 0
+  let pointerOffsetY = 0
+
+  stage.addEventListener('pointerdown', (e) => {
+    if (e.target === closeBtn) return
+    e.preventDefault()
+    dragging = true
+    dragMoved = false
+    dragStartX = e.clientX
+    dragStartY = e.clientY
+    const rect = host.getBoundingClientRect()
+    pointerOffsetX = e.clientX - rect.left
+    pointerOffsetY = e.clientY - rect.top
+    stage.setPointerCapture(e.pointerId)
+  })
+
+  stage.addEventListener('pointermove', (e) => {
+    if (!dragging) return
+
+    if (!dragMoved) {
+      const dx = e.clientX - dragStartX
+      const dy = e.clientY - dragStartY
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return
+      dragMoved = true
+    }
+
+    const { left, top } = clampPos(e.clientX - pointerOffsetX, e.clientY - pointerOffsetY)
+    host.style.left = `${left}px`
+    host.style.top = `${top}px`
+    host.style.right = 'auto'
+    host.style.bottom = 'auto'
+  })
+
+  stage.addEventListener('pointerup', (e) => {
+    if (!dragging) return
+    dragging = false
+    stage.releasePointerCapture(e.pointerId)
+
+    if (dragMoved) {
+      const { left, top } = clampPos(e.clientX - pointerOffsetX, e.clientY - pointerOffsetY)
+      chrome.storage.local.set({ mascotPos: { left, top } })
+    } else {
+      activateStage()
+    }
   })
 
   // Background'dan gelen mesajlar

@@ -23,7 +23,7 @@ export default defineManifest({
   },
   web_accessible_resources: [
     {
-      resources: ["sprites/*"],
+      resources: ["sprites/*", "fonts/*"],
       matches: ["<all_urls>"],
     },
   ],
