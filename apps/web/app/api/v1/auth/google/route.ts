@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     });
 
     const clientId = process.env.GOOGLE_CLIENT_ID || "";
-    const redirectUri = "http://localhost:3000/api/v1/auth/google/callback";
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || "";
 
     const googleAuthUrl = new URL(
       "https://accounts.google.com/o/oauth2/v2/auth",
