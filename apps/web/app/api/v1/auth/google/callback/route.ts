@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
       `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`,
     );
     const userInfo = await userInfoResponse.json();
-    console.log("User Information:", userInfo);
 
     const googleId = userInfo.sub;
     const name = userInfo.name;
