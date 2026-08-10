@@ -36,6 +36,8 @@ async function mountMascot() {
 
   shadow.innerHTML = `
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
       * { box-sizing: border-box; }
 
       .wrap { position: relative; width: 140px; height: 140px; }
@@ -47,7 +49,7 @@ async function mountMascot() {
         background-repeat: repeat-x;
         background-size: auto 140px;
         border: 3px solid #000;
-        border-radius: 10px;
+        border-radius: 0;
         overflow: hidden;
         image-rendering: pixelated;
         cursor: pointer;
@@ -78,9 +80,9 @@ async function mountMascot() {
         right: 3px;
         width: 18px;
         height: 18px;
-        background: #1a1c2c;
+        background: #08060d;
         border: 2px solid #000;
-        color: #f4f4f4;
+        color: #ede4d3;
         font-family: 'Press Start 2P', monospace;
         font-size: 7px;
         line-height: 1;
@@ -99,11 +101,11 @@ async function mountMascot() {
         right: 0;
         width: 240px;
         padding: 14px;
-        background: #1a1c2c;
+        background: #08060d;
         border: 3px solid #000;
         box-shadow: 4px 4px 0 #000;
         font-family: 'Press Start 2P', monospace;
-        color: #f4f4f4;
+        color: #ede4d3;
         display: none;
       }
       .bubble.show { display: block; }
@@ -117,7 +119,7 @@ async function mountMascot() {
         padding: 9px 8px;
         border: 3px solid #000;
         cursor: pointer;
-        color: #1a1c2c;
+        color: #1c130c;
       }
       .bubble button:active {
         transform: translate(2px, 2px);
@@ -125,7 +127,7 @@ async function mountMascot() {
       }
 
       .bubble .checkin { background: #ffcd75; box-shadow: 3px 3px 0 #000; }
-      .bubble .mute { background: #566c86; color: #f4f4f4; box-shadow: 3px 3px 0 #000; }
+      .bubble .mute { background: #566c86; color: #ede4d3; box-shadow: 3px 3px 0 #000; }
     </style>
     <div class="wrap">
       <div class="bubble" id="bubble"></div>

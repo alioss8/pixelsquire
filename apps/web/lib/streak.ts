@@ -1,16 +1,8 @@
 import { prisma } from "./db"
 import {format, subDays, startOfDay} from 'date-fns'
 
-export async function calcStreak(userId: string): Promise<number> {
-  const days = await prisma.checkin.findMany({
-    where: { goal: { userId } },
-    select: { date: true },
-    distinct: ['date'],
-    orderBy: { date: 'desc' },
-    take: 365,
-  })
-
-  const daySet = new Set(days.map(d => format(d.date, 'yyyy-MM-dd')))
+function streakFromDates(dates: Date[]): number {
+  const daySet = new Set(dates.map(d => format(d, 'yyyy-MM-dd')))
 
   let streak = 0
   let cursor = new Date()
@@ -23,6 +15,29 @@ export async function calcStreak(userId: string): Promise<number> {
     cursor = subDays(cursor, 1)
   }
   return streak
+}
+
+export async function calcStreak(userId: string): Promise<number> {
+  const days = await prisma.checkin.findMany({
+    where: { goal: { userId } },
+    select: { date: true },
+    distinct: ['date'],
+    orderBy: { date: 'desc' },
+    take: 365,
+  })
+
+  return streakFromDates(days.map(d => d.date))
+}
+
+export async function calcGoalStreak(goalId: string): Promise<number> {
+  const days = await prisma.checkin.findMany({
+    where: { goalId },
+    select: { date: true },
+    orderBy: { date: 'desc' },
+    take: 365,
+  })
+
+  return streakFromDates(days.map(d => d.date))
 }
 
 export type StreakHistoryPoint = { date: string; count: number }

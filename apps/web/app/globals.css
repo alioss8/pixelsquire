@@ -1,26 +1,121 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* base — taverna palette */
+  --wood-950: #1c130c;
+  --wood-900: #241811;
+  --wood-800: #2e2419;
+  --wood-700: #3a2a1c;
+  --wood-600: #6b5335;
+  --gold-400: #ffcd75;
+  --gold-500: #e0a458;
+  --gold-600: #c1863c;
+  --parchment-100: #f3e6d0;
+  --parchment-200: #ede4d3;
+  --tan-400: #b89b76;
+  --tan-500: #8a7860;
+  --sage-500: #7a9b5e;
+  --slate-500: #566c86;
+  --ember-500: #c0392b;
+  --ink-900: #08060d;
+
+  /* semantic */
+  --surface-page: var(--wood-900);
+  --surface-card: var(--wood-950);
+  --surface-card-border: var(--wood-700);
+  --surface-raised: var(--wood-800);
+  --surface-inset: rgba(224, 164, 88, 0.08);
+  --surface-glass: rgba(28, 19, 12, 0.5);
+  --surface-glass-strong: rgba(28, 19, 12, 0.72);
+  --surface-glass-border: rgba(243, 230, 208, 0.16);
+
+  --text-primary: var(--parchment-100);
+  --text-secondary: var(--tan-400);
+  --text-muted: var(--tan-500);
+  --text-on-gold: var(--wood-950);
+
+  --accent-gold: var(--gold-500);
+  --accent-gold-hover: var(--gold-400);
+  --accent-gold-active: var(--gold-600);
+
+  --state-success: var(--sage-500);
+  --state-danger: var(--ember-500);
+  --state-neutral: var(--slate-500);
+
+  --border-default: var(--wood-700);
+  --border-strong: var(--wood-600);
+  --focus-ring: var(--gold-500);
+
+  /* typography */
+  --font-display: var(--font-cinzel), Georgia, serif;
+  --font-body: var(--font-nunito), system-ui, "Segoe UI", sans-serif;
+  --font-pixel: var(--font-press-start), var(--font-mono);
+  --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
+
+  --text-display-lg: 44px;
+  --text-display-md: 28px;
+  --text-display-sm: 20px;
+  --text-body-lg: 16px;
+  --text-body-md: 14px;
+  --text-body-sm: 13px;
+  --text-caption: 11px;
+  --text-pixel-lg: 14px;
+  --text-pixel-md: 10px;
+  --text-pixel-sm: 8px;
+
+  --leading-tight: 1.1;
+  --leading-normal: 1.45;
+  --leading-relaxed: 1.6;
+
+  --tracking-wide: 0.5px;
+  --tracking-pixel: 0.5px;
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 9px;
+  --radius-lg: 14px;
+
+  --stroke-hairline: 1px;
+  --stroke-default: 2px;
+  --stroke-thick: 3px;
+
+  /* effects */
+  --shadow-flat: 3px 3px 0 #000;
+  --shadow-flat-sm: 2px 2px 0 #000;
+  --shadow-soft: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-popup: 4px 4px 0 rgba(0, 0, 0, 0.4);
+  --blur-glass: 18px;
+
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --pixelated: pixelated;
+
+  --background: var(--surface-page);
+  --foreground: var(--text-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-body);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
 }

@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Pixel-art şövalye mascotlu motivasyon uygulaması",
     start_url: "/",
     display: "standalone",
-    background_color: "#2e2419", // senin taverna koyu ahşap
+    background_color: "#241811", // --wood-900, gerçek sayfa arka planıyla aynı
     theme_color: "#e0a458", // altın/candlelight
     icons: [
       {
