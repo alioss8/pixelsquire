@@ -32,6 +32,9 @@ export async function POST(
   let checkin;
   try {
     checkin = await prisma.checkin.create({ data: { goalId: id, date: today } });
+    if (goal.cadence === "ONCE") {
+      await prisma.goal.update({ where: { id }, data: { archivedAt: new Date() } });
+    }
     await awardXp(device.userId, XP_PER_CHECKIN);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -70,6 +73,9 @@ export async function DELETE(
   });
   if (count > 0) {
     await awardXp(device.userId, -XP_PER_CHECKIN);
+    if (goal.cadence === "ONCE" && goal.archivedAt) {
+      await prisma.goal.update({ where: { id }, data: { archivedAt: null } });
+    }
   }
 
   return Response.json({ ok: true });

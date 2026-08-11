@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
   const goal = await prisma.goal.findFirst({
     where: {
       userId: device.userId,
+      archivedAt: null,
       checkins: {
         none: { date: today },
       },
@@ -35,6 +36,9 @@ export async function POST(request: NextRequest) {
   await prisma.checkin.create({
     data: { goalId: goal.id, date: today },
   });
+  if (goal.cadence === "ONCE") {
+    await prisma.goal.update({ where: { id: goal.id }, data: { archivedAt: new Date() } });
+  }
   const xp = await awardXp(device.userId, XP_PER_CHECKIN);
 
   const streak = await calcStreak(device.userId);
