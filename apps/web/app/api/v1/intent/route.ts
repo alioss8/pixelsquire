@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
           .trim()
           .toLowerCase();
         const goals = goalHint
-          ? await prisma.goal.findMany({ where: { userId: device.userId } })
+          ? await prisma.goal.findMany({ where: { userId: device.userId, archivedAt: null } })
           : [];
         const goal =
           goals.find((g) => g.title.toLowerCase().includes(goalHint)) ??
@@ -153,6 +153,9 @@ export async function POST(request: NextRequest) {
 
         try {
           await prisma.checkin.create({ data: { goalId: goal.id, date: today } });
+          if (goal.cadence === "ONCE") {
+            await prisma.goal.update({ where: { id: goal.id }, data: { archivedAt: new Date() } });
+          }
           await awardXp(device.userId, XP_PER_CHECKIN);
         } catch (err) {
           if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")) {
