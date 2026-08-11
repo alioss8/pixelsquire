@@ -8,13 +8,16 @@ import { MascotStage } from "@/components/mascot/MascotStage";
 import { Nav } from "@/components/layout/Nav";
 import { QuestRow, type Quest } from "@/components/layout/QuestRow";
 import { Scene } from "@/components/mascot/Scene";
-import { ensureSession, type SessionSummary } from "@/lib/session";
+import { ensureSession, fetchSummary, type SessionSummary } from "@/lib/session";
 
 export function Quests() {
   const [session, setSession] = useState<SessionSummary | null>(null);
   const [quests, setQuests] = useState<Quest[] | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [justCheckedId, setJustCheckedId] = useState<string | null>(null);
+  const [xpGainedId, setXpGainedId] = useState<{ id: string; amount: number } | null>(null);
+  const [levelUp, setLevelUp] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function loadQuests() {
     const res = await fetch("/api/v1/goals", { credentials: "include" });
@@ -29,24 +32,70 @@ export function Quests() {
       .finally(loadQuests);
   }, []);
 
+  function flashError(message: string) {
+    setError(message);
+    setTimeout(() => setError(null), 3000);
+  }
+
   async function toggle(id: string) {
     const quest = quests?.find((q) => q.id === id);
     if (!quest) return;
-    await fetch(`/api/v1/goals/${id}/checkin`, {
-      method: quest.doneToday ? "DELETE" : "POST",
-      credentials: "include",
-    });
-    if (!quest.doneToday) {
-      setJustCheckedId(id);
-      setTimeout(() => setJustCheckedId(null), 1500);
+    const wasDone = quest.doneToday;
+    try {
+      const res = await fetch(`/api/v1/goals/${id}/checkin`, {
+        method: wasDone ? "DELETE" : "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("checkin failed");
+      const data = await res.json();
+
+      if (!wasDone) {
+        setJustCheckedId(id);
+        setTimeout(() => setJustCheckedId(null), 1500);
+
+        if (data.xpGained > 0) {
+          setXpGainedId({ id, amount: data.xpGained });
+          setTimeout(() => setXpGainedId(null), 1400);
+        }
+
+        if (session && typeof data.level === "number" && data.level > session.level) {
+          setLevelUp(data.level);
+          setTimeout(() => setLevelUp(null), 2600);
+        }
+      }
+
+      fetchSummary().then((s) => s && setSession(s));
+      await loadQuests();
+    } catch {
+      flashError("Bir şeyler ters gitti kral, tekrar dener misin?");
     }
-    await loadQuests();
+  }
+
+  async function changeCadence(id: string, cadence: string) {
+    setQuests((prev) => prev?.map((q) => (q.id === id ? { ...q, cadence } : q)) ?? prev);
+    try {
+      const res = await fetch(`/api/v1/goals/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ cadence }),
+      });
+      if (!res.ok) throw new Error("cadence update failed");
+    } catch {
+      flashError("Tekrar sıklığı güncellenemedi kral, tekrar dener misin?");
+      await loadQuests();
+    }
   }
 
   async function confirmDelete(id: string) {
-    await fetch(`/api/v1/goals/${id}`, { method: "DELETE", credentials: "include" });
-    setDeletingId(null);
-    await loadQuests();
+    try {
+      const res = await fetch(`/api/v1/goals/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("delete failed");
+      setDeletingId(null);
+      await loadQuests();
+    } catch {
+      flashError("Quest silinemedi kral, tekrar dener misin?");
+    }
   }
 
   return (
@@ -75,6 +124,33 @@ export function Quests() {
             Questlerin
           </h1>
         </div>
+
+        {session?.streakAtRisk && (
+          <Card variant="glass" style={{ borderColor: "var(--state-danger)", display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--parchment-100)" }}>
+              {session.streak} günlük serin tehlikede kral! Bugün henüz hiç quest tamamlamadın.
+            </p>
+          </Card>
+        )}
+
+        {error && (
+          <Card variant="glass" style={{ borderColor: "var(--state-danger)" }}>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--parchment-100)" }}>{error}</p>
+          </Card>
+        )}
+
+        {levelUp && (
+          <Card
+            variant="glass"
+            style={{ display: "flex", alignItems: "center", gap: 12, borderColor: "var(--accent-gold)" }}
+          >
+            <MascotStage state="happy" frame={false} size={56} />
+            <p style={{ margin: 0, fontSize: 14, color: "var(--gold-400)", fontWeight: 700 }}>
+              Seviye atladın! Şimdi Lv. {levelUp} kral ⚔️
+            </p>
+          </Card>
+        )}
 
         {quests === null ? (
           <p style={{ color: "var(--tan-400)", fontSize: 14 }}>Yükleniyor...</p>
@@ -113,6 +189,8 @@ export function Quests() {
               onConfirmDelete={confirmDelete}
               onCancelDelete={() => setDeletingId(null)}
               justChecked={justCheckedId === q.id}
+              xpGained={xpGainedId?.id === q.id ? xpGainedId.amount : null}
+              onCadenceChange={changeCadence}
             />
           ))
         )}

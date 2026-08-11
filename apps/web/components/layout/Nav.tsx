@@ -44,6 +44,7 @@ export function Nav({
   ) : (
     <a
       href="/api/v1/auth/google"
+      title="İlerlemeni kaydet — cihaz değiştirince veya tarayıcı verilerini silince quest'lerini kaybetmezsin"
       style={{
         fontFamily: "var(--font-body)",
         fontWeight: 700,
@@ -159,6 +160,11 @@ export function Nav({
           <Link href="/quests" style={linkStyle("/quests")} onClick={() => setMenuOpen(false)}>
             Questler
           </Link>
+          {!user && (
+            <p style={{ margin: 0, fontSize: 12, color: "var(--tan-500)", maxWidth: 260 }}>
+              Google ile bağlarsan ilerlemen cihaz değişse de kaybolmaz.
+            </p>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
             <PushRegister />
             {actions}
