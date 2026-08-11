@@ -1,7 +1,10 @@
 import { authenticate } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { calcStreak, getStreakHistory } from "@/lib/streak";
+import { awardXp, XP_PER_CHECKIN } from "@/lib/xp";
+import { CreateGoalInput } from "@pixelsquire/shared";
 import { GoogleGenAI } from "@google/genai";
+import { Prisma } from "@prisma/client";
 import { subDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { NextRequest } from "next/server";
@@ -23,7 +26,11 @@ export async function POST(request: NextRequest) {
   const prompt = `Sen PixelSquire uygulamasının komut sınıflandırıcısısın.
     Kullanıcının mesajını şu intent'lerden BİRİNE sınıflandır:
 
-    - CREATE_GOAL: yeni bir görev/quest eklemek istiyor. params: { title }
+    - CREATE_GOAL: yeni bir görev/quest eklemek istiyor. params: { goals: { title: string, cadence: "DAILY" | "WEEKLY" | "ONCE" }[] }
+      Kullanıcı birden fazla farklı aktivite/görev belirtiyorsa HER BİRİNİ ayrı bir eleman olarak goals dizisine yaz, tek bir görevde birleştirme.
+      cadence: "her gün" gibi bir alışkanlıksa veya belirsizse DAILY; "haftada", "haftalık" gibi bir ifade varsa WEEKLY; tek seferlik bir şeyse ("bir kere", "sadece bugün") ONCE.
+      Örnek: "su iç ve top oyna görevlerini iki farklı görev olarak tanımla" → goals: [{ "title": "Su iç", "cadence": "DAILY" }, { "title": "Top oyna", "cadence": "DAILY" }]
+      Örnek: "haftada bir kitap oku görevi ekle" → goals: [{ "title": "Kitap oku", "cadence": "WEEKLY" }]
     - CHECKIN: bir görevi tamamladığını söylüyor. params: { goalHint }
     - STREAK_STATUS: streak/seri durumunu soruyor. params: {}
     - DAY_REVIEW: belirli bir günün özetini istiyor (örn. "dün ne yaptım"). params: { dayHint } (örn. "dün", "bugün")
@@ -67,15 +74,57 @@ export async function POST(request: NextRequest) {
       }
 
       case "CREATE_GOAL": {
-        const title = String(parsed.params?.title ?? "").trim();
-        if (!title) {
+        const rawGoals: unknown[] = Array.isArray(parsed.params?.goals)
+          ? parsed.params.goals
+          : Array.isArray(parsed.params?.titles)
+            ? parsed.params.titles.map((title: unknown) => ({ title }))
+            : parsed.params?.title
+              ? [{ title: parsed.params.title }]
+              : [];
+
+        const valid: { title: string; cadence: "DAILY" | "WEEKLY" | "ONCE" }[] = [];
+        for (const raw of rawGoals) {
+          const g = raw as { title?: unknown; cadence?: unknown };
+          const check = CreateGoalInput.safeParse({
+            title: String(g?.title ?? "").trim(),
+            cadence: g?.cadence ?? "DAILY",
+          });
+          if (check.success) valid.push(check.data);
+        }
+
+        if (valid.length === 0) {
           data = { ok: false, message: "quest başlığı anlaşılamadı" };
           break;
         }
-        const goal = await prisma.goal.create({
-          data: { title, cadence: "DAILY", userId: device.userId },
+
+        const existing = await prisma.goal.findMany({
+          where: { userId: device.userId, archivedAt: null },
+          select: { title: true },
         });
-        data = { ok: true, goal };
+        const existingTitles = new Set(existing.map((g) => g.title.trim().toLowerCase()));
+
+        const toCreate = valid.filter((g) => !existingTitles.has(g.title.toLowerCase()));
+        const duplicates = valid
+          .filter((g) => existingTitles.has(g.title.toLowerCase()))
+          .map((g) => g.title);
+
+        const goals = await Promise.all(
+          toCreate.map((g) =>
+            prisma.goal.create({
+              data: { title: g.title, cadence: g.cadence, userId: device.userId },
+            }),
+          ),
+        );
+
+        data = {
+          ok: goals.length > 0,
+          goals: goals.length > 0 ? goals : undefined,
+          duplicates: duplicates.length > 0 ? duplicates : undefined,
+          message:
+            goals.length === 0
+              ? `bu quest zaten ekli kral: ${duplicates.join(", ")}`
+              : undefined,
+        };
         break;
       }
 
@@ -102,11 +151,14 @@ export async function POST(request: NextRequest) {
         );
         const today = new Date(localDateStr + "T00:00:00Z");
 
-        await prisma.checkin.upsert({
-          where: { goalId_date: { goalId: goal.id, date: today } },
-          create: { goalId: goal.id, date: today },
-          update: {},
-        });
+        try {
+          await prisma.checkin.create({ data: { goalId: goal.id, date: today } });
+          await awardXp(device.userId, XP_PER_CHECKIN);
+        } catch (err) {
+          if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")) {
+            throw err;
+          }
+        }
 
         const streak = await calcStreak(device.userId);
         data = { ok: true, goal: goal.title, streak };

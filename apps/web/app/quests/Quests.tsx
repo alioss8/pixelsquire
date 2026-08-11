@@ -51,7 +51,12 @@ export function Quests() {
 
   return (
     <Scene>
-      <Nav user={session?.user ?? null} />
+      <Nav
+        user={session?.user ?? null}
+        level={session?.level}
+        xpIntoLevel={session?.xpIntoLevel}
+        xpForNextLevel={session?.xpForNextLevel}
+      />
       <div
         style={{
           flex: 1,
