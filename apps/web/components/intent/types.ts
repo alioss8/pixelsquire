@@ -5,7 +5,8 @@ export type IntentResult = { intent: string; data?: unknown };
 export type StreakStatusData = { streak?: number; history?: StreakHistoryPoint[] };
 export type CreateGoalData = {
   ok: boolean;
-  goal?: { id: string; title: string; cadence: string };
+  goals?: { id: string; title: string; cadence: string }[];
+  duplicates?: string[];
   message?: string;
 };
 export type CheckinData = {

@@ -2,6 +2,7 @@ import { authenticate } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatInTimeZone } from "date-fns-tz";
 import { calcStreak } from "@/lib/streak";
+import { awardXp, levelFromXp, XP_PER_CHECKIN } from "@/lib/xp";
 import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -34,7 +35,8 @@ export async function POST(request: NextRequest) {
   await prisma.checkin.create({
     data: { goalId: goal.id, date: today },
   });
+  const xp = await awardXp(device.userId, XP_PER_CHECKIN);
 
   const streak = await calcStreak(device.userId);
-  return Response.json({ ok: true, streak });
+  return Response.json({ ok: true, streak, xp, level: levelFromXp(xp) });
 }

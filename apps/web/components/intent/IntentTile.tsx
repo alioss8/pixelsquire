@@ -37,17 +37,33 @@ export function IntentTile({ result }: { result: IntentResult }) {
 
   if (intent === "CREATE_GOAL") {
     const d = data as CreateGoalData | undefined;
+    const goals = d?.goals ?? [];
+    const duplicates = d?.duplicates ?? [];
     return (
       <Card variant="glass" style={cardStyle}>
-        <p style={{ margin: 0, fontSize: 15 }}>
-          {d?.ok && d.goal ? (
-            <>
-              Yeni quest eklendi: <strong>{d.goal.title}</strong> ⚔️
-            </>
+        {d?.ok && goals.length > 0 ? (
+          goals.length === 1 ? (
+            <p style={{ margin: 0, fontSize: 15 }}>
+              Yeni quest eklendi: <strong>{goals[0].title}</strong> ⚔️
+            </p>
           ) : (
-            (d?.message ?? "Quest eklenemedi.")
-          )}
-        </p>
+            <>
+              <p style={{ margin: 0, fontSize: 15 }}>{goals.length} yeni quest eklendi: ⚔️</p>
+              <ul style={{ margin: "6px 0 0", paddingLeft: 20, fontSize: 14 }}>
+                {goals.map((g) => (
+                  <li key={g.id}>{g.title}</li>
+                ))}
+              </ul>
+            </>
+          )
+        ) : (
+          <p style={{ margin: 0, fontSize: 15 }}>{d?.message ?? "Quest eklenemedi."}</p>
+        )}
+        {duplicates.length > 0 && (
+          <p style={{ margin: "8px 0 0", fontSize: 13, opacity: 0.75 }}>
+            Zaten ekliydi: {duplicates.join(", ")}
+          </p>
+        )}
       </Card>
     );
   }

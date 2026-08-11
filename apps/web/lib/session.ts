@@ -1,6 +1,10 @@
 export type SessionSummary = {
   streak: number;
   activeGoals: number;
+  xp: number;
+  level: number;
+  xpIntoLevel: number;
+  xpForNextLevel: number;
   user: { email: string; name: string | null } | null;
 };
 
