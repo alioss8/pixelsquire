@@ -4,10 +4,30 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PushRegister } from "@/app/PushManager";
+import { Badge } from "@/components/ui/Badge";
 
-export function Nav({ user }: { user: { email: string; name: string | null } | null }) {
+export function Nav({
+  user,
+  level,
+  xpIntoLevel,
+  xpForNextLevel,
+}: {
+  user: { email: string; name: string | null } | null;
+  level?: number;
+  xpIntoLevel?: number;
+  xpForNextLevel?: number;
+}) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const levelBadge = level ? (
+    <Badge tone="gold">
+      Lv. {level}
+      {xpIntoLevel !== undefined && xpForNextLevel !== undefined
+        ? ` · ${xpIntoLevel}/${xpForNextLevel} XP`
+        : ""}
+    </Badge>
+  ) : null;
 
   const linkStyle = (href: string): React.CSSProperties => ({
     fontFamily: "var(--font-body)",
@@ -77,6 +97,7 @@ export function Nav({ user }: { user: { email: string; name: string | null } | n
         </div>
 
         <div className="ps-nav-desktop" style={{ alignItems: "center", gap: 12 }}>
+          {levelBadge}
           <PushRegister />
           {actions}
         </div>
