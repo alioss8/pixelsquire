@@ -1,6 +1,8 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+
+type PushState = "checking" | "subscribed" | "unsubscribed" | "denied" | "unsupported";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -24,17 +26,38 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 export function PushRegister() {
-  // İŞ 1: mount'ta otomatik register
+  const [state, setState] = useState<PushState>("checking");
+
+  // İŞ 1: mount'ta otomatik register + mevcut durumu öğren
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js");
+    async function checkState() {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setState("unsupported");
+        return;
+      }
+      if (Notification.permission === "denied") {
+        setState("denied");
+        return;
+      }
+      try {
+        await navigator.serviceWorker.register("/sw.js");
+        const registration = await navigator.serviceWorker.ready;
+        const sub = await registration.pushManager.getSubscription();
+        setState(sub ? "subscribed" : "unsubscribed");
+      } catch {
+        setState("unsubscribed");
+      }
     }
+    checkState();
   }, []);
 
   // İŞ 2: butona bağlı
   async function subscribeToPush() {
     const permisson = await Notification.requestPermission();
-    if (permisson !== "granted") return;
+    if (permisson !== "granted") {
+      setState(permisson === "denied" ? "denied" : "unsubscribed");
+      return;
+    }
 
     const registration = await navigator.serviceWorker.ready;
 
@@ -55,10 +78,35 @@ export function PushRegister() {
         auth: arrayBufferToBase64(subscription.getKey("auth")!),
       }),
     });
+
+    setState("subscribed");
+  }
+
+  if (state === "unsupported") return null;
+
+  if (state === "subscribed") {
+    return (
+      <Button variant="ghost" size="sm" disabled>
+        🔔 Bildirimler açık
+      </Button>
+    );
+  }
+
+  if (state === "denied") {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled
+        title="Bildirimlere tarayıcı ayarlarından izin vermen gerekiyor"
+      >
+        🔕 Bildirimler kapalı
+      </Button>
+    );
   }
 
   return (
-    <Button variant="ghost" size="sm" onClick={subscribeToPush}>
+    <Button variant="ghost" size="sm" onClick={subscribeToPush} disabled={state === "checking"}>
       🔔 Bildirimleri aç
     </Button>
   );

@@ -1,7 +1,7 @@
 import { authenticate } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatInTimeZone } from "date-fns-tz";
-import { awardXp, XP_PER_CHECKIN } from "@/lib/xp";
+import { awardXp, levelFromXp, XP_PER_CHECKIN } from "@/lib/xp";
 import { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 
@@ -30,12 +30,15 @@ export async function POST(
   }
 
   let checkin;
+  let created = false;
+  let xp = device.user.xp;
   try {
     checkin = await prisma.checkin.create({ data: { goalId: id, date: today } });
+    created = true;
     if (goal.cadence === "ONCE") {
       await prisma.goal.update({ where: { id }, data: { archivedAt: new Date() } });
     }
-    await awardXp(device.userId, XP_PER_CHECKIN);
+    xp = await awardXp(device.userId, XP_PER_CHECKIN);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       checkin = await prisma.checkin.findUniqueOrThrow({
@@ -46,7 +49,10 @@ export async function POST(
     }
   }
 
-  return Response.json({ ok: true, checkin }, { status: 201 });
+  return Response.json(
+    { ok: true, checkin, created, xpGained: created ? XP_PER_CHECKIN : 0, xp, level: levelFromXp(xp) },
+    { status: 201 },
+  );
 }
 
 export async function DELETE(
@@ -71,12 +77,13 @@ export async function DELETE(
   const { count } = await prisma.checkin.deleteMany({
     where: { goalId: id, date: today },
   });
+  let xp = device.user.xp;
   if (count > 0) {
-    await awardXp(device.userId, -XP_PER_CHECKIN);
+    xp = await awardXp(device.userId, -XP_PER_CHECKIN);
     if (goal.cadence === "ONCE" && goal.archivedAt) {
       await prisma.goal.update({ where: { id }, data: { archivedAt: null } });
     }
   }
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, xp, level: levelFromXp(xp) });
 }

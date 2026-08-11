@@ -5,10 +5,11 @@ export type SessionSummary = {
   level: number;
   xpIntoLevel: number;
   xpForNextLevel: number;
+  streakAtRisk: boolean;
   user: { email: string; name: string | null } | null;
 };
 
-async function fetchSummary(): Promise<SessionSummary | null> {
+export async function fetchSummary(): Promise<SessionSummary | null> {
   const res = await fetch("/api/v1/me/summary", { credentials: "include" });
   if (!res.ok) return null;
   return res.json();

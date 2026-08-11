@@ -6,12 +6,12 @@ import { MascotStage } from "@/components/mascot/MascotStage";
 import { Scene } from "@/components/mascot/Scene";
 import { Nav } from "@/components/layout/Nav";
 import { IntentTile, mascotStateFor } from "@/components/intent/IntentTile";
-import type { IntentResult } from "@/components/intent/types";
+import type { CreateGoalData, IntentResult } from "@/components/intent/types";
 import { ensureSession, type SessionSummary } from "@/lib/session";
 
 const SUGGESTIONS = [
+  { label: "Quest ekle", text: "yeni quest ekle: su iç", primary: true },
   { label: "Streak durumu", text: "kaç günlük streak'im var?" },
-  { label: "Quest ekle", text: "yeni quest ekle: su iç" },
   { label: "Check-in yap", text: "su iç quest'ini tamamladım" },
   { label: "Günü özetle", text: "bugün ne yaptım" },
   { label: "Haftalık özet", text: "bu hafta nasıl geçti" },
@@ -49,6 +49,7 @@ export function Home() {
   const [text, setText] = useState("");
   const [result, setResult] = useState<IntentResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     ensureSession()
@@ -60,6 +61,7 @@ export function Home() {
     if (!query.trim()) return;
     setLoading(true);
     setResult(null);
+    setError(null);
     try {
       const res = await fetch("/api/v1/intent", {
         method: "POST",
@@ -67,11 +69,31 @@ export function Home() {
         credentials: "include",
         body: JSON.stringify({ text: query }),
       });
+      if (!res.ok) throw new Error("intent failed");
       const data: IntentResult = await res.json();
       setResult(data);
+    } catch {
+      setError("Şövalye şu an cevap veremiyor kral, bir daha dener misin?");
     } finally {
       setLoading(false);
       setText("");
+    }
+  }
+
+  async function deleteGoal(id: string) {
+    try {
+      const res = await fetch(`/api/v1/goals/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("delete failed");
+      setResult((prev) => {
+        if (!prev || prev.intent !== "CREATE_GOAL") return prev;
+        const data = prev.data as CreateGoalData | undefined;
+        return {
+          ...prev,
+          data: { ...data, goals: data?.goals?.filter((g) => g.id !== id) },
+        };
+      });
+    } catch {
+      setError("Silinemedi kral, Questler sayfasından tekrar dener misin?");
     }
   }
 
@@ -160,12 +182,20 @@ export function Home() {
                   fontSize: 12,
                   whiteSpace: "nowrap",
                   padding: "8px 14px",
-                  background: "var(--surface-glass)",
                   backdropFilter: "blur(var(--blur-glass))",
-                  color: "var(--text-secondary)",
-                  border: "1px solid var(--surface-glass-border)",
                   borderRadius: "var(--radius-lg)",
                   cursor: "pointer",
+                  ...(s.primary
+                    ? {
+                        background: "var(--accent-gold)",
+                        color: "var(--text-on-gold)",
+                        border: "1px solid var(--accent-gold)",
+                      }
+                    : {
+                        background: "var(--surface-glass)",
+                        color: "var(--text-secondary)",
+                        border: "1px solid var(--surface-glass-border)",
+                      }),
                 }}
               >
                 {s.label}
@@ -174,10 +204,26 @@ export function Home() {
           </div>
         </div>
 
+        {error && !loading && (
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 560,
+              background: "var(--surface-glass)",
+              border: "1px solid var(--state-danger)",
+              borderRadius: "var(--radius-lg)",
+              padding: "12px 16px",
+              boxSizing: "border-box",
+            }}
+          >
+            <p style={{ margin: 0, fontSize: 13, color: "var(--parchment-100)" }}>{error}</p>
+          </div>
+        )}
+
         {loading && <TypingIndicator />}
         {result && !loading && (
           <div style={{ width: "100%" }}>
-            <IntentTile result={result} />
+            <IntentTile result={result} onDeleteGoal={deleteGoal} />
           </div>
         )}
       </div>

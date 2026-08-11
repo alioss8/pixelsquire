@@ -20,7 +20,13 @@ import type {
 
 const cardStyle: React.CSSProperties = { boxShadow: "var(--shadow-soft)" };
 
-export function IntentTile({ result }: { result: IntentResult }) {
+export function IntentTile({
+  result,
+  onDeleteGoal,
+}: {
+  result: IntentResult;
+  onDeleteGoal?: (id: string) => void;
+}) {
   const { intent, data } = result;
 
   if (intent === "STREAK_STATUS") {
@@ -42,20 +48,36 @@ export function IntentTile({ result }: { result: IntentResult }) {
     return (
       <Card variant="glass" style={cardStyle}>
         {d?.ok && goals.length > 0 ? (
-          goals.length === 1 ? (
+          <>
             <p style={{ margin: 0, fontSize: 15 }}>
-              Yeni quest eklendi: <strong>{goals[0].title}</strong> ⚔️
+              {goals.length === 1 ? "Yeni quest eklendi:" : `${goals.length} yeni quest eklendi:`} ⚔️
             </p>
-          ) : (
-            <>
-              <p style={{ margin: 0, fontSize: 15 }}>{goals.length} yeni quest eklendi: ⚔️</p>
-              <ul style={{ margin: "6px 0 0", paddingLeft: 20, fontSize: 14 }}>
-                {goals.map((g) => (
-                  <li key={g.id}>{g.title}</li>
-                ))}
-              </ul>
-            </>
-          )
+            <ul style={{ margin: "8px 0 0", paddingLeft: 0, listStyle: "none", fontSize: 14 }}>
+              {goals.map((g) => (
+                <li
+                  key={g.id}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "4px 0" }}
+                >
+                  <strong>{g.title}</strong>
+                  {onDeleteGoal && (
+                    <button
+                      onClick={() => onDeleteGoal(g.id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--tan-500)",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        padding: "4px 8px",
+                      }}
+                    >
+                      bu yanlış, sil
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
         ) : (
           <p style={{ margin: 0, fontSize: 15 }}>{d?.message ?? "Quest eklenemedi."}</p>
         )}
