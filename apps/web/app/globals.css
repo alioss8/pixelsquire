@@ -47,9 +47,9 @@
   --focus-ring: var(--gold-500);
 
   /* typography */
-  --font-display: var(--font-cinzel), Georgia, serif;
-  --font-body: var(--font-nunito), system-ui, "Segoe UI", sans-serif;
-  --font-pixel: var(--font-press-start), var(--font-mono);
+  --font-display: "Cinzel", Georgia, serif;
+  --font-body: "Nunito", system-ui, "Segoe UI", sans-serif;
+  --font-pixel: "Press Start 2P", var(--font-mono);
   --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
 
   --text-display-lg: 44px;
